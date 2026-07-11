@@ -3,137 +3,86 @@ we have to select K out of it, we need to minimise
 the maximum of the difference between any two tiles selected,
  the difference between any two tiles is defined as
  the maximum of the height difference and width difference.*/
-
- #include <iostream>
- #include <vector>
- 
- 
- using namespace std;
- 
- 
- typedef long long ll;
- #define fastio ios_base::sync_with_stdio(false); cin.tie(NULL); cout.tie(NULL);
- 
- 
- void solve() {
-     int n, k;
-     cin >> n >> k;
-    
-     vector<vector<int>> freq(401, vector<int>(401, 0));
-    
-     for (int i = 0; i < n; i++) {
-         int x, y;
-         cin >> x >> y;
-         freq[x][y]++;
-     }
-    
-     for (int i = 0; i < 401; i++) {
-         for (int j = 0; j < 401; j++) {
-             if (i > 0) freq[i][j] += freq[i - 1][j];
-             if (j > 0) freq[i][j] += freq[i][j - 1];
-             if (i > 0 && j > 0) freq[i][j] -= freq[i - 1][j - 1];
-         }
-     }
-    
-     int low = 0, high = 400, ans = 400;
-    
-     auto isValid = [&](int mid) {
-         for (int i = 0; i + mid < 401; i++) {
-             for (int j = 0; j + mid < 401; j++) {
-                 int cnt = freq[i + mid][j + mid];
-                 if (i > 0) cnt -= freq[i - 1][j + mid];
-                 if (j > 0) cnt -= freq[i + mid][j - 1];
-                 if (i > 0 && j > 0) cnt += freq[i - 1][j - 1];
-                 if (cnt >= k) return true;
-             }
-         }
-         return false;
-     };
-    
-     while (low <= high) {
-         int mid = (low + high) / 2;
-         if (isValid(mid)) {
-             ans = mid;
-             high = mid - 1;
-         } else {
-             low = mid + 1;
-         }
-     }
-    
-     cout << ans << "\n";
- }
- 
- 
- int main() {
-     fastio;
-     solve();
-     return 0;
- }
- 
 #include <bits/stdc++.h>
 using namespace std;
 
 struct Tile {
-    int h, w;
-    Tile(int h, int w) : h(h), w(w) {}
+    int w, h;
 };
 
-bool compare(const Tile& a, const Tile& b) {
-    if (a.h == b.h) return a.w < b.w;
-    return a.h < b.h;
-}
+bool check(vector<Tile> &tiles, int K, int D) {
+    int N = tiles.size();
 
-bool canSelect(vector<Tile>& tiles, int k, int diff) {
-    int n = tiles.size();
-    int count = 1;
-    int start = 0;
+    for (int i = 0; i < N; i++) {
 
-    for (int end = 1; end < n; end++) {
-        while (max(tiles[end].h - tiles[start].h, tiles[end].w - tiles[start].w) > diff) {
-            start++;
-        }
-        if (end - start + 1 >= k) {
-            return true;
+        vector<int> heights;
+
+        // Collect all tiles whose width difference <= D
+        for (int j = i; j < N && tiles[j].w - tiles[i].w <= D; j++)
+            heights.push_back(tiles[j].h);
+
+        if ((int)heights.size() < K)
+            continue;
+
+        sort(heights.begin(), heights.end());
+
+        // Sliding window on heights
+        int l = 0;
+        for (int r = 0; r < (int)heights.size(); r++) {
+
+            while (heights[r] - heights[l] > D)
+                l++;
+
+            if (r - l + 1 >= K)
+                return true;
         }
     }
+
     return false;
 }
 
-int minMaxDifference(vector<int>& height, vector<int>& width, int n, int k) {
+int minimumDifference(vector<pair<int,int>> &arr, int K) {
+
     vector<Tile> tiles;
-    for (int i = 0; i < n; i++) {
-        tiles.push_back(Tile(height[i], width[i]));
-    }
 
-    sort(tiles.begin(), tiles.end(), compare);
+    for (auto &x : arr)
+        tiles.push_back({x.first, x.second});
 
-    int low = 0;
-    int high = max(*max_element(height.begin(), height.end()) - *min_element(height.begin(), height.end()),
-                  *max_element(width.begin(), width.end()) - *min_element(width.begin(), width.end()));
+    sort(tiles.begin(), tiles.end(),
+         [](Tile &a, Tile &b) {
+             return a.w < b.w;
+         });
 
-    while (low < high) {
-        int mid = low + (high - low) / 2;
-        if (canSelect(tiles, k, mid)) {
-            high = mid;
-        } else {
-            low = mid + 1;
+    int low = 0, high = 0;
+
+    for (auto &t : tiles)
+        high = max(high, max(t.w, t.h));
+
+    int ans = high;
+
+    while (low <= high) {
+
+        int mid = (low + high) / 2;
+
+        if (check(tiles, K, mid)) {
+            ans = mid;
+            high = mid - 1;
         }
+        else
+            low = mid + 1;
     }
-    return low;
+
+    return ans;
 }
 
 int main() {
-    int n, k;
-    cin >> n >> k;
-    vector<int> height(n), width(n);
-    for (int i = 0; i < n; i++) {
-        cin >> height[i] >> width[i];
-    }
 
-    cout << minMaxDifference(height, width, n, k) << endl;
-    return 0;
+    vector<pair<int,int>> tiles = { };
+    int K;
+    cout << minimumDifference(tiles, K) << endl;
+
 }
-
+ 
  /*
  #define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
