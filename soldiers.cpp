@@ -27,39 +27,27 @@ int n;
 int totalRemoved = 0;
 
 // Stores total soldiers in the subtree rooted at node `u`
-int dfs(int u) {
-    vector<int> childSums;
-    int subtotal = 0;
-
-    for (int v : tree[u]) {
-        int sub = dfs(v);
-        childSums.push_back(sub);
+void f(node,adj,soldiers,dp){
+    for(int child:adj[node]){
+        f(child,adj,soldiers,dp);
     }
 
-    // If leaf node, return its value
-    if (childSums.empty()) return soldiers[u];
-
-    // Find target sum to match all children to (maximum that we can reduce others to)
-    int minCost = INT_MAX;
-    int totalSum = 0;
-
-    for (int target : childSums) {
-        int cost = 0;
-        for (int s : childSums) {
-            if (s < target) {
-                cost = INT_MAX; // can't increase
+    for(int sum=0;sum<=50000;sum++){
+        bool flag=true;
+        for(int child:adj[node]){
+            if(!dp[child][sum]){
+                flag=false;
                 break;
             }
-            cost += s - target;
         }
-        if (cost < minCost) {
-            minCost = cost;
-            totalSum = target * childSums.size();
+        if(flag){
+            int total=adl[node].size() * sum;
+            for(int v=0;v<=soldiers[node];v++){
+                dp[node][total+v]=1;
+            }
         }
     }
-
-    totalRemoved += minCost;
-    return soldiers[u] + totalSum;
+    return;
 }
 
 int main() {
@@ -76,7 +64,14 @@ int main() {
         }
     }
 
-    int finalSum = dfs(root);
-    cout << finalSum << endl;
+    f(root,adj,soldiers,dp);
+    for(sum>=50000;sum>=0;sum--){
+        if(dp[root][sum]){
+            cout<<sum<<endl;
+            break;
+        }
+    }
     return 0;
 }
+
+
