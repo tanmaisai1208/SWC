@@ -46,112 +46,137 @@ Constraints:
 
 */
 
-#include<bits/stdc++.h>
-using namespace std; 
-int main(){
-    int n,m;cin>>n>>m;
-    vector<vector<int>>v(n,vector<int>(m));
-    int apples=0;
-    for(int i=0;i<n;i++){
-        for(int j=0;j<m;j++){
-            cin>>v[i][j];
-            apples=max(v[i][j],apples);
-        }
-    }
-    // cout<<apples<<endl;
-    deque<array<int,4>>dq;
-    vector dp(n,vector(m,vector(apples+1,vector(4,INT_MAX))));
-    dq.push_back({0,0,v[0][0]==1,0});
-    dp[0][0][v[0][0]==1][0]=0;
-    vector<int>dx={0,1,0,-1},dy={1,0,-1,0};
-
-    auto move=[&](int x, int y, int cnt, int dir, int d, int f){
-        int nx=x+dx[dir],ny=y+dy[dir];
-        if(!(nx>=0 and nx<n and ny>=0 and ny<m and v[nx][ny]!=-1))return;
-        int ncnt=cnt+(v[nx][ny]==(cnt+1));
-        if(dp[nx][ny][ncnt][dir]>d){
-            if(f){
-                dq.push_back({nx,ny,ncnt,dir});
-            }else{
-                dq.push_front({nx,ny,ncnt,dir});
-            }
-            dp[nx][ny][ncnt][dir]=d;
-        }
-    };
-    while(!dq.empty()){
-        auto [x,y,cnt,dir] = dq.front();
-        dq.pop_front();
-
-        move(x,y,cnt,dir,dp[x][y][cnt][dir],0);
-        move(x,y,cnt,(dir+1)%4,dp[x][y][cnt][dir]+1,1);
-    }
-    int ans=INT_MAX;
-    for(int i=0;i<n;i++){
-        for(int j=0;j<m;j++){
-            //cout<<i<<" "<<j<<endl;
-            for(int k=0;k<4;k++){
-                //cout<<dp[i][j][apples][k]<<" "; 
-                ans=min(ans,dp[i][j][apples][k]);
-            }
-            //cout<<endl;
-        }
-    }
-    cout<<ans<<endl;
-
-
-    return 0;
-}
-
-
----------------------------------------------
-
 #include <bits/stdc++.h>
 using namespace std;
 
-const int MAX_N = 60;
-const int MAX_M = 150;
+struct State
+{
+    int x, y;
+    int dir;
+    int nxt;
+};
+
 const int INF = 1e9;
 
-int dp[MAX_N][MAX_N][MAX_M][4]; // dp[i][j][cnt][dir]
-vector<vector<int>> v;
-int N, M;
-vector<int> dx = {0, 1, 0, -1}; // right, down, left, up
-vector<int> dy = {1, 0, -1, 0}; // right, down, left, up
+int dx[4] = {0, 1, 0, -1};
+int dy[4] = {1, 0, -1, 0};
 
-int f(int i, int j, int cnt, int dir) {
-    if (cnt == M) return 0; // All apples eaten
-    if (i < 0 || i >= N || j < 0 || j >= N || v[i][j] == -1) return INF; // Out of bounds or trap
-    if (dp[i][j][cnt][dir] != -1) return dp[i][j][cnt][dir];
+int main()
+{
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    int ans = INF;
-    int nx = i + dx[dir], ny = j + dy[dir];
-    // Move straight
-    ans = min(ans, f(nx, ny, cnt + (v[nx][ny] == cnt + 1), dir));
-    // Turn right
-    nx = i + dx[(dir + 1) % 4], ny = j + dy[(dir + 1) % 4];
-    ans = min(ans, 1 + f(nx, ny, cnt + (v[nx][ny] == cnt + 1), (dir + 1) % 4));
-
-    return dp[i][j][cnt][dir] = ans;
-}
-
-int main() {
     int T;
     cin >> T;
-    for (int t = 1; t <= T; t++) {
+
+    for (int tc = 1; tc <= T; tc++)
+    {
+        int N;
         cin >> N;
-        v.assign(N, vector<int>(N));
-        M = 0;
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                cin >> v[i][j];
-                if (v[i][j] > 0) M = max(M, v[i][j]);
+
+        vector<vector<int>> a(N, vector<int>(N));
+
+        int M = 0;
+
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {
+                cin >> a[i][j];
+                M = max(M, a[i][j]);
             }
         }
 
-        memset(dp, -1, sizeof(dp));
-        int ans = f(0, 0, 0, 0); 
+        if (a[0][0] == -1)
+        {
+            cout << "#" << tc << " -1\n";
+            continue;
+        }
 
-        cout << "#" << t << " " << (ans >= INF ? -1 : ans) << endl;
+        int APP = M + 2;
+
+        vector<vector<vector<vector<int>>>> dist(
+            N,
+            vector<vector<vector<int>>>(
+                N,
+                vector<vector<int>>(
+                    4,
+                    vector<int>(APP, INF))));
+
+        deque<State> dq;
+
+        int startApple = 1;
+
+        if (a[0][0] == 1)
+            startApple = 2;
+
+        dist[0][0][0][startApple] = 0;
+
+        dq.push_front({0, 0, 0, startApple});
+
+        int ans = -1;
+
+        while (!dq.empty())
+        {
+            State cur = dq.front();
+            dq.pop_front();
+
+            int d = dist[cur.x][cur.y][cur.dir][cur.nxt];
+
+            if (cur.nxt == M + 1)
+            {
+                ans = d;
+                break;
+            }
+
+            // go straight
+            {
+                int ndir = cur.dir;
+                int nx = cur.x + dx[ndir];
+                int ny = cur.y + dy[ndir];
+
+                if (nx >= 0 && nx < N && ny >= 0 && ny < N &&
+                    a[nx][ny] != -1)
+                {
+                    int nxtApple = cur.nxt;
+
+                    if (a[nx][ny] == nxtApple)
+                        nxtApple++;
+
+                    if (dist[nx][ny][ndir][nxtApple] > d)
+                    {
+                        dist[nx][ny][ndir][nxtApple] = d;
+                        dq.push_front({nx, ny, ndir, nxtApple});
+                    }
+                }
+            }
+
+            // right turn
+            {
+                int ndir = (cur.dir + 1) % 4;
+
+                int nx = cur.x + dx[ndir];
+                int ny = cur.y + dy[ndir];
+
+                if (nx >= 0 && nx < N && ny >= 0 && ny < N &&
+                    a[nx][ny] != -1)
+                {
+                    int nxtApple = cur.nxt;
+
+                    if (a[nx][ny] == nxtApple)
+                        nxtApple++;
+
+                    if (dist[nx][ny][ndir][nxtApple] > d + 1)
+                    {
+                        dist[nx][ny][ndir][nxtApple] = d + 1;
+                        dq.push_back({nx, ny, ndir, nxtApple});
+                    }
+                }
+            }
+        }
+
+        cout << "#" << tc << " " << ans << "\n";
     }
+
     return 0;
 }
